@@ -1,8 +1,10 @@
+# pylint: disable=missing-docstring, trailing-whitespace, line-too-long, invalid-name
+################################## Part1 ###################################
 import csv
 import sqlite3
 from sqlite3 import Error
 
-
+#### Task 1
 def create_sql_conn(db_file):
     """ Create a connection to the SQLite database """
     conn = None
@@ -40,6 +42,8 @@ def create_backup(conn):
     conn.commit()
     cursor.close()
 
+#### Task 2
+
 def create_humidity_column(conn):
     # This function creates a new column called humidity_category and populates it with the appropriate category based on the humidity value
     cursor = conn.cursor()
@@ -55,6 +59,8 @@ def create_humidity_column(conn):
     conn.commit()
     cursor.close()
 
+
+#### Task 3
 def create_weather_table(conn):
     # This function creates a new table called Weather and populates it with the data from the CarSharing table and drops the weather, temp, temp_feel, humidity, windspeed, humidity_category columns from the CarSharing table
     cursor = conn.cursor()
@@ -77,30 +83,28 @@ def create_weather_table(conn):
     cursor.execute(query1)
     cursor.executescript(query2)
     conn.commit()
-    # return cursor.lastrowid
 
 def add_workingday_code(conn):
     # This function creates a new column called workingday_code and populates it with the appropriate code based on the workingday value (1 = Yes, 0 = No)
-    query = """ALTER TABLE CarSharing ADD COLUMN workingday_code text;
+    query1 = """SELECT DISTINCT workingday FROM CarSharing;"""
+    query2 = """ALTER TABLE CarSharing ADD COLUMN workingday_code text;
     UPDATE CarSharing SET workingday_code = CASE workingday WHEN "No" THEN "0" WHEN "Yes" THEN "1" ELSE "" END;"""
 
     cursor = conn.cursor()
-    cursor.execute("SELECT DISTINCT workingday FROM CarSharing;")
-    cursor.executescript(query)
+    cursor.execute(query1)
+    cursor.executescript(query2)
     conn.commit()
-    # return cursor.lastrowid
-    
 
 def add_holiday_code(conn):
     # This function creates a new column called holiday_code and populates it with the appropriate code based on the holiday value (1 = Yes, 0 = No)
-    query = """ALTER TABLE CarSharing ADD COLUMN holiday_code text;
+    query1 = """SELECT DISTINCT holiday FROM CarSharing;"""
+    query2 = """ALTER TABLE CarSharing ADD COLUMN holiday_code text;
     UPDATE CarSharing SET holiday_code = CASE holiday WHEN "No" THEN "0" WHEN "Yes" THEN "1" ELSE "" END;"""
 
     cursor = conn.cursor()
-    cursor.execute("SELECT DISTINCT holiday FROM CarSharing;")
-    cursor.executescript(query)
+    cursor.execute(query1)
+    cursor.executescript(query2)
     conn.commit()
-    # return cursor.lastrowid
 
 def create_holiday_table(conn):
     # This function creates a new table called Holiday and populates it with the data from the CarSharing table and drops the holiday, workingday_code, holiday_code columns from the CarSharing table
@@ -121,25 +125,23 @@ def create_holiday_table(conn):
     cursor.execute(query1)
     cursor.executescript(query2)
     conn.commit()
-    # return cursor.lastrowid
 
 def create_time_table(conn):
     # This function creates a new table called Time and populates it with modified data from the CarSharing table and drops the timestamps and season columns from the CarSharing table
     cursor = conn.cursor()
-
-    query1 = '''CREATE TABLE IF NOT EXISTS Time
+    query1 = """CREATE TABLE IF NOT EXISTS Time
                     (id INTEGER PRIMARY KEY,
                     timestamps TEXT,
                     hour INTEGER,
                     weekday_name TEXT,
                     month TEXT,
-                    season TEXT)'''
-    query2 = '''INSERT INTO Time (id, timestamps, hour, weekday_name, month, season)
+                    season TEXT)"""
+    query2 = """INSERT INTO Time (id, timestamps, hour, weekday_name, month, season)
                     SELECT id, timestamps, strftime('%H', timestamps) AS hour,
                     strftime('%W', timestamps, 'weekday 1') AS weekday_name,
                     strftime('%m', timestamps, 'start of month') AS month,
                     season
-                    FROM CarSharing'''
+                    FROM CarSharing"""
     query3 = """PRAGMA foreign_keys=off;
     BEGIN TRANSACTION;
     CREATE TABLE IF NOT EXISTS CarSharing_NewTable(id INTEGER PRIMARY KEY,
@@ -153,14 +155,13 @@ def create_time_table(conn):
     cursor.executescript(query2)
     cursor.executescript(query3)
     conn.commit()
-    return cursor.lastrowid
 
+#### Task 4
 def question4a(conn):
     # The date and time (timestamp) when we had the lowest temperature and the corresponding demand rate
     cursor = conn.cursor()
-    # query = '''SELECT timestamps, demand FROM CarSharing c JOIN Time t ON c.id = t.id JOIN Weather w ON c.id = w.id WHERE w.temp = SELECT MIN(temp) FROM Weather'''
 
-    query = '''SELECT timestamps, demand FROM CarSharing c JOIN Time t ON c.id = t.id JOIN Weather w ON c.id = w.id WHERE w.temp = (SELECT MIN(temp) FROM Weather) '''
+    query = """SELECT timestamps, demand FROM CarSharing c JOIN Time t ON c.id = t.id JOIN Weather w ON c.id = w.id WHERE w.temp = (SELECT MIN(temp) FROM Weather)"""
 
     query_result = cursor.execute(query)
     results = query_result.fetchall()
@@ -175,7 +176,7 @@ def question4a(conn):
 def question4b(conn):
     # The average, highest, and lowest windspeed and humidity for working days (i. e., workingday=“Yes”) and non-working days ((i. e., workingday=“No”) in 2017 and the corresponding windspeed and humidity values.
     cursor = conn.cursor()
-    query = '''SELECT workingday, AVG(windspeed) AS avg_windspeed, MAX(windspeed) AS max_windspeed, MIN(windspeed) AS min_windspeed, AVG(humidity) AS avg_humidity, MAX(humidity) AS max_humidity, MIN(humidity) AS min_humidity FROM CarSharing c JOIN Time t ON c.id = t.id JOIN Holiday h ON c.id = h.id JOIN Weather w ON c.id = w.id WHERE strftime('%Y', t.timestamps) = '2017' GROUP BY h.workingday'''
+    query = """SELECT workingday, AVG(windspeed) AS avg_windspeed, MAX(windspeed) AS max_windspeed, MIN(windspeed) AS min_windspeed, AVG(humidity) AS avg_humidity, MAX(humidity) AS max_humidity, MIN(humidity) AS min_humidity FROM CarSharing c JOIN Time t ON c.id = t.id JOIN Holiday h ON c.id = h.id JOIN Weather w ON c.id = w.id WHERE strftime('%Y', t.timestamps) = '2017' GROUP BY h.workingday"""
 
     query_result = cursor.execute(query)
     results = query_result.fetchall()
@@ -190,12 +191,13 @@ def question4b(conn):
         print(f"Min Humidity: {row[6]}")
         print("\n")
 
+    conn.commit()
     cursor.close()
 
 def question4c(conn):
     #The weekday, month, and season when we had the highest average demand rates throughout 2017 and the corresponding average demand rates
     cursor = conn.cursor()
-    query = '''SELECT t.weekday_name, t.month, t.season, AVG(c.demand) AS avg_demand FROM CarSharing c JOIN Time t ON c.id = t.id WHERE strftime('%Y', t.timestamps) = '2017' GROUP BY t.weekday_name, t.month, t.season ORDER BY avg_demand DESC LIMIT 1'''
+    query = """SELECT t.weekday_name, t.month, t.season, AVG(c.demand) AS avg_demand FROM CarSharing c JOIN Time t ON c.id = t.id WHERE strftime('%Y', t.timestamps) = '2017' GROUP BY t.weekday_name, t.month, t.season ORDER BY avg_demand DESC LIMIT 1"""
     
     query_result = cursor.execute(query)
     result = query_result.fetchone()
@@ -206,12 +208,13 @@ def question4c(conn):
     print(f"Season: {result[2]}")
     print(f"Average Demand: {result[3]}")
 
+    conn.commit()
     cursor.close()
 
 def question4d(conn):
     # The average demand rates for each Dry, Sticky, and Oppressive humidity in 2017 sorted in descending order based on their average demand rates
     cursor = conn.cursor()
-    query = '''SELECT w.humidity, w.humidity_category, AVG(c.demand) AS avg_demand FROM CarSharing c JOIN Weather w ON c.id = w.id JOIN Time t ON c.id = t.id WHERE strftime('%Y', t.timestamps) = '2017' GROUP BY w.humidity_category ORDER BY avg_demand DESC'''
+    query = """SELECT w.humidity, w.humidity_category, AVG(c.demand) AS avg_demand FROM CarSharing c JOIN Weather w ON c.id = w.id JOIN Time t ON c.id = t.id WHERE strftime('%Y', t.timestamps) = '2017' GROUP BY w.humidity_category ORDER BY avg_demand DESC"""
     query_result = cursor.execute(query)
     results = query_result.fetchall()
 
@@ -219,23 +222,28 @@ def question4d(conn):
     for result in results:
         print(f"Humidity: {result[0]}, Category: {result[1]}, Average Demand: {result[2]}")
 
+    conn.commit()
     cursor.close()
 
 
 def main():
     database = r"cars.db"
-
+    #### Task 1
+    # create a database connection
     conn = create_sql_conn(database)
 
     with conn:
+        #### Task 1
         print("Question 1")
         create_carsharing_table(conn)
         print("CarSharing Table has been created successfully.")
         create_backup(conn)
         print("Backups created.")
         print("\nQuestion 2")
+        #### Task 2
         create_humidity_column(conn)
         print("Humidity column has been added to the CarSharing table.")
+        #### Task 3
         print("\nQuestion 3a")
         create_weather_table(conn)
         print("Weather table has been created successfully.")
@@ -249,6 +257,7 @@ def main():
         print("Holiday table has been created successfully.")
         create_time_table(conn)
         print("Time table has been created successfully.")
+        #### Task 4
         print("\nQuestion 4a")
         question4a(conn)
         print("\nQuestion 4b")
